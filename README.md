@@ -6,7 +6,7 @@ This project is designed to show how to:
 
 - run repeatable prompt evaluations against an LLM
 - compare outputs against expected behavior
-- fail CI when quality drops below a threshold
+- fail CI when tests persistently fail (with flakiness detection)
 - generate evaluation artifacts for review
 
 ## What this repo demonstrates
@@ -16,8 +16,9 @@ This repo simulates a simple support assistant with three evaluation categories:
 1. **Factual correctness**
 2. **Policy compliance**
 3. **Tone / brevity / formatting**
+4. **Semantic similarity**
 
-It is intentionally small so it can be understood quickly and adapted to real client work.
+It is intentionally small so it can be understood quickly and adapted to real production systems.
 
 ## Stack
 
@@ -38,7 +39,7 @@ It is intentionally small so it can be understood quickly and adapted to real cl
 │   └── support-tests.csv
 ├── .env.example
 ├── package.json
-├── promptfooconfig.yaml
+├── promptfooconfig.js
 └── README.md
 ```
 
@@ -81,10 +82,10 @@ OPENAI_API_KEY_PROMPTFOO=your_key_here
 Optional:
 
 ```bash
-OPENAI_MODEL=gpt-4.1-mini
+OPENAI_MODEL=gpt-3.5-turbo
 ```
 
-If `OPENAI_MODEL` is not provided, the config defaults to `gpt-4.1-mini`.
+If `OPENAI_MODEL` is not set, the provider ID will be incomplete. Set it in `.env` or as an environment variable.
 
 ## How the evaluation works
 
@@ -99,19 +100,15 @@ The prompt template is stored in `prompts/support-assistant.txt`.
 
 Promptfoo combines the prompt with each test case and evaluates the response.
 
-## Threshold enforcement
+## Flakiness detection
 
-This repo includes `scripts/check-threshold.js`, which reads the latest Promptfoo JSON output and fails the build if the pass rate falls below a configurable threshold.
+LLM outputs are non-deterministic, so a test may fail sporadically without indicating a real regression. To handle this, `eval:ci` runs each test 3 times (`--repeat 3`) and `scripts/check-threshold.js` groups the results:
 
-Default threshold:
+- **Passing** — all repeats pass
+- **Flaky** — some repeats pass, some fail (logged as a warning, does not break the build)
+- **Persistently failing** — all repeats fail (breaks the build)
 
-- **85% passing**
-
-Override locally:
-
-```bash
-PASS_RATE_THRESHOLD=0.9 npm run eval:ci
-```
+This replaces a blanket pass-rate threshold with targeted failure detection.
 
 ## Running in GitHub Actions
 
@@ -127,7 +124,7 @@ Then every push or pull request to `main` will run the evaluation workflow.
 
 ## Example freelance use cases
 
-This pattern can be adapted for client engagements such as:
+This pattern can be adapted for projects such as:
 
 - prompt regression testing
 - chatbot QA before deployment
@@ -137,9 +134,9 @@ This pattern can be adapted for client engagements such as:
 
 ## Notes
 
-- LLM outputs are probabilistic; keep tests focused on **behavioral expectations**, not exact wording.
+- LLM outputs are non-deterministic; keep tests focused on **behavioral expectations**, not exact wording.
 - In production, create larger datasets and separate tests by business domain.
-- For real client projects, consider adding model comparison, cost tracking, and trace capture.
+- For real projects, consider adding model comparison, cost tracking, and trace capture.
 
 ## License
 
