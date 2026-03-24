@@ -1,0 +1,15 @@
+{
+  "name": "llm-ci-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal LLM regression testing repo using Promptfoo and GitHub Actions",
+  "scripts": {
+    "eval": "promptfoo eval -c promptfooconfig.js",
+    "eval:ci": "promptfoo eval -c promptfooconfig.js --repeat 3 --output .promptfoo/latest-results.json && node scripts/check-threshold.js .promptfoo/latest-results.json",
+    "view": "promptfoo view"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "promptfoo": "^0.121.2"
+  }
+}

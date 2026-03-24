@@ -1,0 +1,39 @@
+name: LLM Evaluation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run LLM regression tests
+        env:
+          OPENAI_API_KEY_PROMPTFOO: ${{ secrets.OPENAI_API_KEY_PROMPTFOO }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: npm run eval:ci
+
+      - name: Upload Promptfoo results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-results
+          path: .promptfoo/
+          if-no-files-found: ignore
